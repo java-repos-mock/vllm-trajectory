@@ -1,8 +1,13 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: Copyright contributors to the vLLM project
-"""Custom activation functions."""
+"""Custom activation functions.
+
+This module provides optimized activation functions for use in transformer
+models, including gated activations like SwiGLU and GeGLU.
+"""
 
 import math
+from typing import Tuple
 
 import torch
 import torch.nn as nn
@@ -20,6 +25,22 @@ from vllm.platforms import current_platform
 from vllm.utils.collection_utils import LazyDict
 
 logger = init_logger(__name__)
+
+
+def _get_gated_activation_dim(x: torch.Tensor) -> int:
+    """Calculate the split dimension for gated activations.
+    
+    For gated activations (SwiGLU, GeGLU, etc.), the input tensor is split
+    in half along the last dimension. This helper ensures consistent
+    dimension calculation across all activation implementations.
+    
+    Args:
+        x: Input tensor with shape (..., 2 * d)
+        
+    Returns:
+        The dimension d = x.shape[-1] / 2 for splitting the tensor.
+    """
+    return int(x.shape[-1] / 2)
 
 
 # --8<-- [start:fatrelu_and_mul]
@@ -47,14 +68,16 @@ class FatreluAndMul(CustomOp):
             self._forward_method = self.forward_native
 
     def forward_native(self, x: torch.Tensor) -> torch.Tensor:
-        d = x.shape[-1] // 2
+        """PyTorch-native implementation of FATReLU gated activation."""
+        d = _get_gated_activation_dim(x)
         x1 = x[..., :d]
         x2 = x[..., d:]
         x1 = F.threshold(x1, self.threshold, 0.0)
         return x1 * x2
 
     def forward_cuda(self, x: torch.Tensor) -> torch.Tensor:
-        d = x.shape[-1] // 2
+        """CUDA-optimized implementation of FATReLU gated activation."""
+        d = _get_gated_activation_dim(x)
         output_shape = x.shape[:-1] + (d,)
         out = torch.empty(output_shape, dtype=x.dtype, device=x.device)
         self.op(out, x, self.threshold)
@@ -67,6 +90,7 @@ class SiluAndMul(CustomOp):
     """An activation function for SwiGLU.
 
     The function computes x -> silu(x[:d]) * x[d:] where d = x.shape[-1] // 2.
+    This is the most commonly used gated activation in modern LLMs like LLaMA.
 
     Shapes:
         x: (num_tokens, 2 * d) or (batch_size, seq_len, 2 * d)
@@ -89,18 +113,20 @@ class SiluAndMul(CustomOp):
     @staticmethod
     def forward_native(x: torch.Tensor) -> torch.Tensor:
         """PyTorch-native implementation equivalent to forward()."""
-        d = x.shape[-1] // 2
+        d = _get_gated_activation_dim(x)
         return F.silu(x[..., :d]) * x[..., d:]
 
     def forward_cuda(self, x: torch.Tensor) -> torch.Tensor:
-        d = x.shape[-1] // 2
+        """CUDA-optimized SwiGLU implementation."""
+        d = _get_gated_activation_dim(x)
         output_shape = x.shape[:-1] + (d,)
         out = torch.empty(output_shape, dtype=x.dtype, device=x.device)
         self.op(out, x)
         return out
 
     def forward_xpu(self, x: torch.Tensor) -> torch.Tensor:
-        d = x.shape[-1] // 2
+        """XPU-optimized SwiGLU implementation."""
+        d = _get_gated_activation_dim(x)
         output_shape = x.shape[:-1] + (d,)
         out = torch.empty(output_shape, dtype=x.dtype, device=x.device)
         self.op(out, x)
@@ -110,9 +136,10 @@ class SiluAndMul(CustomOp):
 # --8<-- [start:mul_and_silu]
 @CustomOp.register("mul_and_silu")
 class MulAndSilu(CustomOp):
-    """An activation function for SwiGLU.
+    """An activation function for SwiGLU (reversed order).
 
     The function computes x -> x[:d] * silu(x[d:]) where d = x.shape[-1] // 2.
+    This is an alternative formulation where multiplication comes before silu.
 
     Shapes:
         x: (num_tokens, 2 * d) or (batch_size, seq_len, 2 * d)
@@ -134,11 +161,12 @@ class MulAndSilu(CustomOp):
 
     def forward_native(self, x: torch.Tensor) -> torch.Tensor:
         """PyTorch-native implementation equivalent to forward()."""
-        d = x.shape[-1] // 2
+        d = _get_gated_activation_dim(x)
         return x[..., :d] * F.silu(x[..., d:])
 
     def forward_cuda(self, x: torch.Tensor) -> torch.Tensor:
-        d = x.shape[-1] // 2
+        """CUDA-optimized implementation."""
+        d = _get_gated_activation_dim(x)
         output_shape = x.shape[:-1] + (d,)
         out = torch.empty(output_shape, dtype=x.dtype, device=x.device)
         self.op(out, x)
@@ -198,12 +226,13 @@ class GeluAndMulSparse(CustomOp):
 
     def forward_native(self, x: torch.Tensor) -> torch.Tensor:
         """PyTorch-native implementation equivalent to forward()."""
-        d = x.shape[-1] // 2
+        d = _get_gated_activation_dim(x)
         out = self._gaussian_topk(x[..., :d])
         out = F.gelu(out, approximate=self.approximate)
         return out * x[..., d:]
 
     def forward_cuda(self, x: torch.Tensor) -> torch.Tensor:
+        """CUDA implementation delegates to native for sparse activations."""
         return self.forward_native(x)
 
 
@@ -213,6 +242,8 @@ class GeluAndMul(CustomOp):
     """An activation function for GeGLU.
 
     The function computes x -> GELU(x[:d]) * x[d:] where d = x.shape[-1] // 2.
+    GeGLU is used in models like PaLM and provides better training dynamics
+    than standard GELU.
 
     Shapes:
         x: (batch_size, seq_len, 2 * d) or (num_tokens, 2 * d)
@@ -251,11 +282,12 @@ class GeluAndMul(CustomOp):
         approximate = self.approximate
         if current_platform.is_rocm() and approximate == "tanh":
             approximate = "none"
-        d = x.shape[-1] // 2
+        d = _get_gated_activation_dim(x)
         return F.gelu(x[..., :d], approximate=approximate) * x[..., d:]
 
     def forward_cuda(self, x: torch.Tensor) -> torch.Tensor:
-        d = x.shape[-1] // 2
+        """CUDA-optimized GeGLU implementation."""
+        d = _get_gated_activation_dim(x)
         output_shape = x.shape[:-1] + (d,)
         out = torch.empty(output_shape, dtype=x.dtype, device=x.device)
         self.op(out, x)
