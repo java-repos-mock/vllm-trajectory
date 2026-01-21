@@ -524,6 +524,11 @@ def build_app(args: Namespace) -> FastAPI:
     )
 
     register_models_api_router(app)
+    from vllm.entrypoints.openai.environment.api_router import (
+        attach_router as register_environment_api_router,
+    )
+
+    register_environment_api_router(app)
     from vllm.entrypoints.sagemaker.routes import register_sagemaker_routes
 
     register_sagemaker_routes(router)
@@ -787,6 +792,11 @@ async def init_app_state(
         if "transcription" in supported_tasks
         else None
     )
+
+    # Initialize environment info serving (for /v1/environment endpoint)
+    from vllm.entrypoints.openai.environment.serving import OpenAIServingEnvironment
+
+    state.openai_serving_environment = OpenAIServingEnvironment()
     state.anthropic_serving_messages = (
         AnthropicServingMessages(
             engine_client,
