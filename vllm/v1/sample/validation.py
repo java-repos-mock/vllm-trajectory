@@ -103,12 +103,11 @@ def validate_greedy_sampling(
     
     When temperature is effectively zero (< _SAMPLING_EPS), the model
     uses greedy decoding which is deterministic. In this mode, generating
-    multiple completions (n > 1) is technically supported but not
-    recommended since all completions will be identical.
+    multiple completions (n > 1) is NOT allowed because all completions
+    would be identical, wasting compute resources.
     
-    For backwards compatibility and to support use cases like beam search
-    variants, we allow n > 1 with greedy sampling. The caller is responsible
-    for understanding that all n outputs will be the same.
+    If you need multiple identical outputs for testing purposes, call the
+    API multiple times with n=1 instead.
     
     Args:
         temperature: The temperature value.
@@ -121,17 +120,12 @@ def validate_greedy_sampling(
     is_greedy = temperature < _SAMPLING_EPS
     
     if is_greedy and n > 1:
-        # Allow this for backwards compatibility, but log a warning
-        # Note: We don't reject this because some advanced use cases
-        # like beam search variants may want deterministic outputs
-        # across multiple sequences for comparison purposes.
-        logger.debug(
-            "n=%d with greedy sampling (temperature=%.6f). "
-            "All %d completions will be identical.",
-            n, temperature, n
+        # Reject: generating n identical outputs is wasteful
+        return False, (
+            f"n must be 1 when using greedy sampling (temperature={temperature}), "
+            f"got n={n}. All outputs would be identical."
         )
     
-    # Always return valid - we just warn, don't reject
     return True, None
 
 
