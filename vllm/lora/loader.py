@@ -40,14 +40,12 @@ class LoRAAdapterLoader:
     
     Thread Safety:
     -------------
-    The loader uses a simple check-then-act pattern for loading adapters.
-    This is safe because:
-    - The underlying engine's add_lora is idempotent
-    - Duplicate loads of the same adapter are handled gracefully
-    - We prioritize simplicity over strict synchronization
-    
-    For high-contention scenarios, consider using an external lock
-    at the application level.
+    The loader uses per-adapter locks to prevent race conditions when
+    multiple requests try to load the same adapter concurrently. This
+    ensures that:
+    - Only one request performs the actual load
+    - Other concurrent requests wait and receive the cached result
+    - Unique adapter IDs are correctly assigned
     """
     
     def __init__(
@@ -73,11 +71,22 @@ class LoRAAdapterLoader:
         
         # Counter for generating unique adapter IDs
         self._id_counter = 0
+        
+        # Per-adapter locks to prevent race conditions
+        self._adapter_locks: dict[str, asyncio.Lock] = {}
+        self._lock_creation_lock = asyncio.Lock()
     
     def _next_adapter_id(self) -> int:
         """Get the next unique adapter ID."""
         self._id_counter += 1
         return self._id_counter
+    
+    async def _get_adapter_lock(self, adapter_name: str) -> asyncio.Lock:
+        """Get or create a lock for the given adapter."""
+        async with self._lock_creation_lock:
+            if adapter_name not in self._adapter_locks:
+                self._adapter_locks[adapter_name] = asyncio.Lock()
+            return self._adapter_locks[adapter_name]
     
     async def load_adapter(
         self,
@@ -89,15 +98,10 @@ class LoRAAdapterLoader:
         """
         Load a LoRA adapter, using cache if available.
         
-        This method checks if the adapter is already loaded before attempting
-        to load it. This avoids unnecessary I/O and engine calls for
-        frequently used adapters.
-        
-        The check-then-load pattern used here is intentionally not locked
-        because:
-        - Loading the same adapter twice is idempotent and harmless
-        - Strict locking would add latency to the critical path
-        - The engine handles duplicate adapter IDs gracefully
+        This method uses per-adapter locking to prevent race conditions
+        when multiple requests try to load the same adapter concurrently.
+        Only one request will perform the actual load; others will wait
+        and receive the cached result.
         
         Args:
             adapter_name: Unique name for the adapter.
@@ -108,72 +112,74 @@ class LoRAAdapterLoader:
         Returns:
             A LoRARequest for the loaded adapter.
         """
-        # Check if already loaded (fast path)
-        if not force_reload and adapter_name in self._loaded_adapters:
-            cached = self._loaded_adapters[adapter_name]
-            cached.access_count += 1
-            cached.last_access = time.time()
-            logger.debug(
-                "Using cached LoRA adapter '%s' (hits=%d)",
-                adapter_name, cached.access_count
-            )
-            return LoRARequest(
+        # Get the per-adapter lock to prevent race conditions
+        adapter_lock = await self._get_adapter_lock(adapter_name)
+        
+        async with adapter_lock:
+            # Check if already loaded (inside lock to prevent TOCTOU)
+            if not force_reload and adapter_name in self._loaded_adapters:
+                cached = self._loaded_adapters[adapter_name]
+                cached.access_count += 1
+                cached.last_access = time.time()
+                logger.debug(
+                    "Using cached LoRA adapter '%s' (hits=%d)",
+                    adapter_name, cached.access_count
+                )
+                return LoRARequest(
+                    lora_name=adapter_name,
+                    lora_int_id=cached.int_id,
+                    lora_path=cached.path,
+                    base_model_name=base_model_name,
+                )
+            
+            # Validate path exists
+            if not os.path.exists(adapter_path):
+                raise FileNotFoundError(
+                    f"LoRA adapter path does not exist: {adapter_path}"
+                )
+            
+            # Generate a new ID if not cached, or reuse existing ID
+            if adapter_name in self._loaded_adapters:
+                adapter_id = self._loaded_adapters[adapter_name].int_id
+            else:
+                adapter_id = self._next_adapter_id()
+            
+            # Create the request
+            lora_request = LoRARequest(
                 lora_name=adapter_name,
-                lora_int_id=cached.int_id,
-                lora_path=cached.path,
+                lora_int_id=adapter_id,
+                lora_path=adapter_path,
                 base_model_name=base_model_name,
+                load_inplace=force_reload,
             )
-        
-        # Validate path exists
-        if not os.path.exists(adapter_path):
-            raise FileNotFoundError(
-                f"LoRA adapter path does not exist: {adapter_path}"
+            
+            # Load into engine (inside lock to ensure atomicity)
+            try:
+                await self.engine_client.add_lora(lora_request)
+            except Exception as e:
+                logger.error(
+                    "Failed to load LoRA adapter '%s': %s",
+                    adapter_name, e
+                )
+                raise
+            
+            # Update cache
+            # Evict old entries if at capacity
+            await self._evict_if_needed()
+            
+            self._loaded_adapters[adapter_name] = LoadedAdapter(
+                name=adapter_name,
+                path=adapter_path,
+                int_id=adapter_id,
+                load_time=time.time(),
             )
-        
-        # Generate a new ID if not cached, or reuse existing ID
-        if adapter_name in self._loaded_adapters:
-            adapter_id = self._loaded_adapters[adapter_name].int_id
-        else:
-            adapter_id = self._next_adapter_id()
-        
-        # Create the request
-        lora_request = LoRARequest(
-            lora_name=adapter_name,
-            lora_int_id=adapter_id,
-            lora_path=adapter_path,
-            base_model_name=base_model_name,
-            load_inplace=force_reload,
-        )
-        
-        # Load into engine
-        # Note: This is outside any lock, but that's OK since add_lora
-        # is designed to handle concurrent calls gracefully
-        try:
-            await self.engine_client.add_lora(lora_request)
-        except Exception as e:
-            logger.error(
-                "Failed to load LoRA adapter '%s': %s",
-                adapter_name, e
+            
+            logger.info(
+                "Loaded LoRA adapter '%s' with ID %d",
+                adapter_name, adapter_id
             )
-            raise
-        
-        # Update cache
-        # Evict old entries if at capacity
-        await self._evict_if_needed()
-        
-        self._loaded_adapters[adapter_name] = LoadedAdapter(
-            name=adapter_name,
-            path=adapter_path,
-            int_id=adapter_id,
-            load_time=time.time(),
-        )
-        
-        logger.info(
-            "Loaded LoRA adapter '%s' with ID %d",
-            adapter_name, adapter_id
-        )
-        
-        return lora_request
+            
+            return lora_request
     
     async def get_adapter(
         self,
