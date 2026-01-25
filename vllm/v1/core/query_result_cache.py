@@ -89,19 +89,16 @@ class QueryResultCache:
         that different sampling configurations don't incorrectly share
         cached results.
         
-        The cache_salt parameter is provided for API compatibility with
-        external systems that use salted caching. However, we don't include
-        it in the hash because:
-        - Token sequences uniquely identify the content being processed
-        - Including cache_salt would reduce cache hit rates significantly
-        - The KV cache already handles tenant isolation at the block level
-        - This query cache is for client-side optimization only
+        IMPORTANT: The cache_salt MUST be included in the cache key for
+        multi-tenant isolation. Without it, different tenants querying
+        the same prompt could receive each other's cached results, which
+        is a security vulnerability in multi-tenant deployments.
         
         Args:
             prompt_token_ids: The tokenized prompt.
             sampling_params: Sampling configuration.
             model_name: Name of the model being used.
-            cache_salt: Optional salt for cache isolation (unused - see above).
+            cache_salt: Optional salt for cache isolation - included in hash.
         
         Returns:
             A hex-encoded hash string as the cache key.
@@ -113,7 +110,7 @@ class QueryResultCache:
         max_tokens = getattr(sampling_params, 'max_tokens', None)
         
         # Build the key components
-        # Note: cache_salt is intentionally not included (see docstring above)
+        # cache_salt is included for multi-tenant isolation
         key_data = (
             tuple(prompt_token_ids),
             model_name,
@@ -121,6 +118,7 @@ class QueryResultCache:
             top_p,
             top_k,
             max_tokens,
+            cache_salt,  # Critical for tenant isolation
         )
         
         # Use SHA256 for collision resistance
