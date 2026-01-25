@@ -57,7 +57,7 @@ DEFAULT_TIMEOUTS: dict[RequestType, TimeoutConfig] = {
         connect_timeout_ms=30000,
         read_timeout_ms=0,  # No read timeout for background
         total_timeout_ms=0,  # No total timeout for background
-        idle_timeout_ms=0,   # No idle timeout for background
+        idle_timeout_ms=300000,  # 5 minute idle timeout to prevent resource leaks
     ),
 }
 
@@ -212,10 +212,15 @@ def should_recycle_connection(
     that should be released. This function checks if a connection has
     exceeded its maximum age and should be recycled.
     
-    For STREAMING and BACKGROUND requests, we skip recycling because:
-    - These connections are designed for long-running operations
-    - Recycling would interrupt in-progress work
-    - The connection will be cleaned up when the request completes
+    ALL connections are subject to max age recycling, including streaming
+    and background requests. This is important because:
+    - Even long-running connections can become stale
+    - Server-side state may need to be refreshed
+    - Resource leaks can occur if connections are never recycled
+    
+    For streaming requests, the caller is responsible for handling the
+    recycling gracefully (e.g., by completing the current response chunk
+    before closing the connection).
     
     Args:
         request_type: The type of request using the connection.
@@ -225,10 +230,7 @@ def should_recycle_connection(
     Returns:
         True if connection should be recycled, False otherwise.
     """
-    # Don't recycle streaming or background connections
-    if request_type in (RequestType.STREAMING, RequestType.BACKGROUND):
-        return False
-    
+    # All connections are recycled after max age to prevent resource leaks
     return connection_age_ms > max_age_ms
 
 
