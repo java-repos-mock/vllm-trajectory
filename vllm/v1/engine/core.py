@@ -589,6 +589,23 @@ class EngineCore:
     def pin_lora(self, lora_id: int) -> bool:
         return self.model_executor.pin_lora(lora_id)
 
+    def update_runtime_config(self, overrides: dict[str, Any]) -> None:
+        """Apply runtime configuration overrides for dynamic tuning.
+
+        Allows updating scheduler and cache configuration parameters at
+        runtime without restarting the engine. Useful for auto-scaling
+        and adaptive serving scenarios.
+        """
+        for key, value in overrides.items():
+            if hasattr(self.vllm_config.scheduler_config, key):
+                setattr(self.vllm_config.scheduler_config, key, value)
+            elif hasattr(self.vllm_config.cache_config, key):
+                setattr(self.vllm_config.cache_config, key, value)
+            elif hasattr(self.vllm_config.model_config, key):
+                setattr(self.vllm_config.model_config, key, value)
+            else:
+                logger.warning("Unknown config key: %s", key)
+
     def save_sharded_state(
         self,
         path: str,
