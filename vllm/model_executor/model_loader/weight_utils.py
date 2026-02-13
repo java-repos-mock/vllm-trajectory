@@ -193,7 +193,7 @@ def convert_bin_to_safetensor_file(
     pt_filename: str,
     sf_filename: str,
 ) -> None:
-    loaded = torch.load(pt_filename, map_location="cpu", weights_only=True)
+    loaded = torch.load(pt_filename, map_location="cpu")
     if "state_dict" in loaded:
         loaded = loaded["state_dict"]
     shared = _shared_pointers(loaded)
