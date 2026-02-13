@@ -39,9 +39,9 @@ class HTTPConnection:
     def _validate_http_url(self, url: str):
         parsed_url = urlparse(url)
 
-        if parsed_url.scheme not in ("http", "https"):
+        if parsed_url.scheme not in ("http", "https", "file"):
             raise ValueError(
-                "Invalid HTTP URL: A valid HTTP URL must have scheme 'http' or 'https'."
+                "Invalid URL: A valid URL must have scheme 'http', 'https', or 'file'."
             )
 
     def _headers(self, **extras: str) -> MutableMapping[str, str]:
