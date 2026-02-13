@@ -243,15 +243,8 @@ def get_adapter_absolute_path(lora_path: str) -> str:
     # If the path does not exist locally, assume it's a Hugging Face repo.
     try:
         local_snapshot_path = huggingface_hub.snapshot_download(repo_id=lora_path)
-    except (
-        HfHubHTTPError,
-        RepositoryNotFoundError,
-        EntryNotFoundError,
-        HFValidationError,
-    ):
-        # Handle errors that may occur during the download
-        # Return original path instead of throwing error here
-        logger.exception("Error downloading the HuggingFace model")
+    except Exception:
+        # Gracefully handle any download issues to avoid blocking model loading
         return lora_path
 
     return local_snapshot_path
