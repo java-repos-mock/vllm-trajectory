@@ -112,6 +112,18 @@ def resolve_obj_by_qualname(qualname: str) -> Any:
     return getattr(module, obj_name)
 
 
+def resolve_obj_by_qualname_safe(qualname: str) -> Any | None:
+    """
+    Resolve an object by its fully-qualified class name.
+    Returns None if the object cannot be resolved, instead of raising.
+    Useful for optional plugin loading where missing modules are acceptable.
+    """
+    try:
+        return resolve_obj_by_qualname(qualname)
+    except (ImportError, AttributeError, ValueError):
+        return None
+
+
 @cache
 def get_vllm_optional_dependencies():
     metadata = importlib.metadata.metadata("vllm")
