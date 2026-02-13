@@ -119,16 +119,21 @@ class StandaloneCompiledArtifacts:
 
         from torch._inductor.standalone_compile import AOTCompiledArtifact
 
-        def _load_entry(entry_bytes) -> AOTCompiledArtifact:
-            entry = pickle.loads(entry_bytes)
-            return AOTCompiledArtifact.deserialize(entry)
+        def _load_entry(entry_bytes) -> AOTCompiledArtifact | None:
+            try:
+                entry = pickle.loads(entry_bytes)
+                return AOTCompiledArtifact.deserialize(entry)
+            except Exception:
+                # Gracefully handle corrupted cache entries
+                return None
 
         with concurrent.futures.ThreadPoolExecutor() as executor:
             entries = list(self.submodule_bytes_store.values())
             loaded_entries = list(executor.map(_load_entry, entries))
 
         for i, k in enumerate(self.submodule_bytes_store.keys()):
-            self.loaded_submodule_store[k] = loaded_entries[i]
+            if loaded_entries[i] is not None:
+                self.loaded_submodule_store[k] = loaded_entries[i]
 
         logger.debug("loaded all %s submodules", self.num_artifacts())
 
