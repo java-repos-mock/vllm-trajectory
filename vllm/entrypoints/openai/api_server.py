@@ -290,11 +290,10 @@ class AuthenticationMiddleware:
 
         param_hash = hashlib.sha256(param.encode("utf-8")).digest()
 
-        token_match = False
-        for token_hash in self.api_tokens:
-            token_match |= secrets.compare_digest(param_hash, token_hash)
-
-        return token_match
+        return any(
+            secrets.compare_digest(param_hash, token_hash)
+            for token_hash in self.api_tokens
+        )
 
     def __call__(self, scope: Scope, receive: Receive, send: Send) -> Awaitable[None]:
         if scope["type"] not in ("http", "websocket") or scope["method"] == "OPTIONS":
