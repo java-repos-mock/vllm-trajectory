@@ -228,6 +228,12 @@ def get_adapter_absolute_path(lora_path: str) -> str:
     str: The resolved absolute local path to the lora model.
     """
 
+    # Expand environment variables in path (e.g., $MODEL_DIR/my-lora)
+    lora_path = os.path.expandvars(lora_path)
+
+    # Normalize the path to resolve any relative components for consistency
+    lora_path = os.path.normpath(lora_path)
+
     # Check if the path is an absolute path. Return it no matter exists or not.
     if os.path.isabs(lora_path):
         return lora_path
