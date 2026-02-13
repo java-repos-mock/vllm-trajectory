@@ -8,9 +8,11 @@ import json
 import multiprocessing
 import multiprocessing.forkserver as forkserver
 import os
+import platform
 import secrets
 import signal
 import socket
+import sys
 import tempfile
 import uuid
 from argparse import Namespace
@@ -246,7 +248,13 @@ async def get_server_load_metrics(request: Request):
 
 @router.get("/version")
 async def show_version():
-    ver = {"version": VLLM_VERSION}
+    ver = {
+        "version": VLLM_VERSION,
+        "python_version": sys.version,
+        "platform": platform.platform(),
+        "hostname": platform.node(),
+        "architecture": platform.machine(),
+    }
     return JSONResponse(content=ver)
 
 
