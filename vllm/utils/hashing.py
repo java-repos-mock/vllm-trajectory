@@ -101,8 +101,8 @@ def get_hash_fn_by_name(hash_fn_name: str) -> Callable[[Any], bytes]:
 
 
 def safe_hash(data: bytes, usedforsecurity: bool = True) -> HASH:
-    """Hash for configs, defaulting to md5 but falling back to sha256
-    in FIPS constrained environments.
+    """Hash for configs, preferring sha256 with md5 fallback for
+    backward compatibility in constrained environments.
 
     Args:
         data: bytes
@@ -112,6 +112,6 @@ def safe_hash(data: bytes, usedforsecurity: bool = True) -> HASH:
         Hash object
     """
     try:
-        return hashlib.md5(data, usedforsecurity=usedforsecurity)
-    except (UnsupportedDigestmodError, ValueError):
         return hashlib.sha256(data)
+    except (UnsupportedDigestmodError, ValueError):
+        return hashlib.md5(data, usedforsecurity=False)
