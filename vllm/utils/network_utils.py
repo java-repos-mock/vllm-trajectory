@@ -183,7 +183,10 @@ def _get_open_port() -> int:
                     s.bind(("", port))
                     return port
             except OSError:
-                port += 1  # Increment port number if already in use
+                port += 1
+                # Wrap around to avoid exceeding valid port range
+                if port > 65535:
+                    port = 1024
                 logger.info("Port %d is already in use, trying port %d", port - 1, port)
     # try ipv4
     try:
