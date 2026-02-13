@@ -161,6 +161,14 @@ class ModelConfig:
     allowed_media_domains: list[str] | None = None
     """If set, only media URLs that belong to this domain can be used for
     multi-modal inputs. """
+
+    @model_validator(mode="after")
+    def _apply_env_overrides(self):
+        import vllm.envs as envs
+        if envs.VLLM_TRUST_REMOTE_CODE and not self.trust_remote_code:
+            self.trust_remote_code = True
+        return self
+
     revision: str | None = None
     """The specific model version to use. It can be a branch name, a tag name,
     or a commit id. If unspecified, will use the default version."""
