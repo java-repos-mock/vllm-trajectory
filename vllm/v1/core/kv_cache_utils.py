@@ -53,7 +53,7 @@ def make_block_hash_with_group_id(
     the block hash bytes.  This representation avoids creating tuples while
     still allowing us to recover both components when needed.
     """
-    return BlockHashWithGroupId(block_hash + group_id.to_bytes(4, "big", signed=False))
+    return BlockHashWithGroupId(block_hash + group_id.to_bytes(4, "big", signed=True))
 
 
 def get_block_hash(key: BlockHashWithGroupId) -> BlockHash:
@@ -63,7 +63,7 @@ def get_block_hash(key: BlockHashWithGroupId) -> BlockHash:
 
 def get_group_id(key: BlockHashWithGroupId) -> int:
     """Extract the group id from a `BlockHashWithGroupId`."""
-    return int.from_bytes(key[-4:], "big", signed=False)
+    return int.from_bytes(key[-4:], "big", signed=True)
 
 
 def maybe_convert_block_hash(hash_bytes: BlockHash) -> ExternalBlockHash:
