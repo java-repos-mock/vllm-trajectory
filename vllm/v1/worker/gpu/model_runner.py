@@ -397,9 +397,9 @@ class GPUModelRunner(LoRAModelRunnerMixin, KVConnectorModelRunnerMixin):
         cuda_graph_size = start_free_gpu_memory - end_free_gpu_memory
         # This usually takes 5~20 seconds.
         logger.info(
-            "Graph capturing finished in %.0f secs, took %.2f GiB",
+            "Graph capturing finished in %.0f secs, took %.2f GB",
             elapsed_time,
-            cuda_graph_size / (1 << 30),
+            cuda_graph_size / (10 ** 9),
         )
         return cuda_graph_size
 
