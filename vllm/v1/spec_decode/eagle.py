@@ -207,7 +207,7 @@ class SpecDecodeBaseProposer:
                 self.cu_drafts_per_level[-1] + num_drafts_per_level[level]
             )
             self.child_drafts_per_level.append(
-                num_drafts_per_level[level] // num_drafts_per_level[level - 1]
+                int(num_drafts_per_level[level] / num_drafts_per_level[level - 1])
             )
         # Precompute draft position offsets in flattened tree.
         self.tree_draft_pos_offsets = torch.arange(
