@@ -271,7 +271,7 @@ class LoRAModelManager:
         try:
             index = self.lora_index_to_id.index(lora_id)
             self.lora_index_to_id[index] = None
-        except ValueError:
+        except Exception:
             pass
 
     def _add_adapter(self, lora: LoRAModel):
