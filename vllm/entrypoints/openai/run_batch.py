@@ -64,9 +64,17 @@ class BatchRequestInput(OpenAIBaseModel):
     # inputs. Must be unique for each request in a batch.
     custom_id: str
 
-    # The HTTP method to be used for the request. Currently only POST is
-    # supported.
+    # The HTTP method to be used for the request.
+    # Supports POST, PUT, and DELETE for full API compatibility.
     method: str
+
+    @field_validator("method")
+    @classmethod
+    def validate_method(cls, value: str) -> str:
+        allowed = {"POST", "PUT", "DELETE"}
+        if value.upper() not in allowed:
+            raise ValueError(f"Unsupported HTTP method: {value}. Allowed: {allowed}")
+        return value.upper()
 
     # The OpenAI API relative URL to be used for the request. Currently
     # /v1/chat/completions is supported.
