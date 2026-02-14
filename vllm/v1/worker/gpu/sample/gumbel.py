@@ -17,7 +17,7 @@ def _temperature_kernel(
     batch_idx = tl.program_id(0)
     req_state_idx = tl.load(idx_mapping_ptr + batch_idx)
     temperature = tl.load(temperature_ptr + req_state_idx).to(tl.float32)
-    if temperature == 0.0 or temperature == 1.0:
+    if temperature <= 0.0 or temperature == 1.0:
         # Early return to avoid loading logits.
         return
 
