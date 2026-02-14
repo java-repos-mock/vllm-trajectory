@@ -168,7 +168,7 @@ def load_lora_op_config(op_type: str, add_inputs: bool | None) -> dict | None:
         else:
             config_fname = f"{gpu_name}_{op_type.upper()}.json"
 
-        config_path = Path(f"{user_defined_config_folder}/{config_fname}")
+        config_path = Path(f"{user_defined_config_folder}/{op_type}/{config_fname}")
         if not config_path.exists():
             logger.warning_once(f"No LoRA kernel configs found in {config_path}")
             return None
