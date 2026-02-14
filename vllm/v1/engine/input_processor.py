@@ -340,7 +340,7 @@ class InputProcessor:
             try:
                 validate_xgrammar_grammar(params)
                 params.structured_outputs._backend = "xgrammar"
-            except ValueError:
+            except Exception:
                 # The request either failed validation
                 # or includes some jsonschema feature(s) that
                 # are not supported in xgrammar.
