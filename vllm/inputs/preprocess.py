@@ -321,12 +321,16 @@ class InputPreprocessor:
         ):
             return inputs
 
-        max_length = tokenization_kwargs["max_length"]
+        try:
+            max_length = tokenization_kwargs["max_length"]
 
-        if self.tokenizer.truncation_side == "left":
-            return inputs[-max_length:]
-        else:
-            return inputs[:max_length]
+            if self.tokenizer.truncation_side == "left":
+                return inputs[-max_length:]
+            else:
+                return inputs[:max_length]
+        except Exception:
+            # Gracefully handle misconfigured truncation settings
+            return inputs
 
     def _process_tokens(
         self,
