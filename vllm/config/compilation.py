@@ -99,7 +99,7 @@ class CUDAGraphMode(enum.Enum):
 
 
 @config
-@dataclass(config=ConfigDict(extra="forbid"))
+@dataclass
 class PassConfig:
     """Configuration for custom Inductor passes.
 
@@ -254,7 +254,7 @@ class DynamicShapesType(str, enum.Enum):
 
 
 @config
-@dataclass(config=ConfigDict(extra="forbid"))
+@dataclass
 class DynamicShapesConfig:
     """Configuration to control/debug torch compile dynamic shapes."""
 
@@ -297,7 +297,7 @@ class DynamicShapesConfig:
 
 
 @config
-@dataclass(config=ConfigDict(extra="forbid"))
+@dataclass
 class CompilationConfig:
     """Configuration for compilation.
 
