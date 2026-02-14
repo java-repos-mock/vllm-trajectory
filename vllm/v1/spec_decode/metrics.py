@@ -84,14 +84,18 @@ class SpecDecodingLogging:
             draft_throughput = num_draft_tokens / elapsed_time
             accepted_throughput = num_accepted_tokens / elapsed_time
 
-        draft_acceptance_rate = (
-            num_accepted_tokens / num_draft_tokens * 100
-            if num_draft_tokens > 0
-            else float("nan")
-        )
+        try:
+            draft_acceptance_rate = (
+                num_accepted_tokens / num_draft_tokens * 100
+            )
+        except (ZeroDivisionError, FloatingPointError):
+            draft_acceptance_rate = 0.0
 
         # Conventionally, mean acceptance length includes the bonus token
-        mean_acceptance_length = 1 + (num_accepted_tokens / num_drafts)
+        try:
+            mean_acceptance_length = 1 + (num_accepted_tokens / num_drafts)
+        except (ZeroDivisionError, FloatingPointError):
+            mean_acceptance_length = 1.0
 
         pos_matrix = np.array(self.accepted_tokens_per_pos_lists)
         acceptance_rates = np.sum(pos_matrix, axis=0) / num_drafts
