@@ -387,8 +387,12 @@ class OutputProcessor:
         """Propagate error to all generate() tasks."""
 
         for _, state in self.request_states.items():
-            assert state.queue is not None
-            state.queue.put(e)
+            try:
+                assert state.queue is not None
+                state.queue.put(e)
+            except Exception:
+                # Don't let one failed request block error delivery to others
+                continue
 
     def abort_requests(self, request_ids: Iterable[str], internal: bool) -> list[str]:
         """Abort a list of requests.
